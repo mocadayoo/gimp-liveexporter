@@ -35,13 +35,13 @@ powershell -NoProfile -File .\install.ps1
 インストール先は以下です。
 
 ```text
-%APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\live_update.py
+%APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\gimp-liveexporter.py
 ```
 
 ### 手動インストール
 
 1. `%APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\` フォルダを作成します。
-2. `src\live_update.py` をそのフォルダへコピーします。
+2. `src\gimp-liveexporter.py` をそのフォルダへコピーします。
 3. GIMPを完全に終了してから再起動します。
 
 ### GIMPで開始する
@@ -51,7 +51,7 @@ powershell -NoProfile -File .\install.ps1
 3. Unityプロジェクトの `Assets` 配下など、PNGの出力先を指定します。
 4. PNG名と出力待機時間を入力してStartします。
 
-GIMPの再起動後にメニューが見つからない場合は、GIMPのプラグインフォルダ設定と `src\live_update.py` の配置先を確認してください。
+GIMPの再起動後にメニューが見つからない場合は、GIMPのプラグインフォルダ設定と `src\gimp-liveexporter.py` の配置先を確認してください。
 
 ## 使い方
 

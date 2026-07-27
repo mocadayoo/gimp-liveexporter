@@ -1,6 +1,6 @@
-﻿$sourceFile = Join-Path $PSScriptRoot "..\src\live_update.py"
+﻿$sourceFile = Join-Path $PSScriptRoot "..\src\gimp-liveexporter.py"
 $pluginDirectory = Join-Path $env:APPDATA "GIMP\3.0\plug-ins\gimp-liveexporter"
-$destinationFile = Join-Path $pluginDirectory "live_update.py"
+$destinationFile = Join-Path $pluginDirectory "gimp-liveexporter.py"
 
 function Confirm-Install([string]$Prompt) {
     $answer = Read-Host "$Prompt [y/N]"
@@ -8,7 +8,7 @@ function Confirm-Install([string]$Prompt) {
 }
 
 if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
-    throw "live_update.pyが見つかりません。リリースZIPを再ダウンロードして展開してください。"
+    throw "gimp-liveexporter.pyが見つかりません。リリースZIPを再ダウンロードして展開してください。"
 }
 
 Write-Host "GIMP Live Exporter を次の場所へインストールします: $pluginDirectory"
