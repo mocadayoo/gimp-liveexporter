@@ -249,6 +249,26 @@ def show_stop_dialog(current_image_id):
     return image_id
 
 
+def show_replace_dialog(image_name):
+    """同じタブの監視を置き換えるか確認"""
+    dialog = Gtk.Dialog(title="LiveSync - Replace Sync")
+    dialog.add_buttons(
+        "_Cancel", Gtk.ResponseType.CANCEL,
+        "_Replace", Gtk.ResponseType.OK,
+    )
+    content = dialog.get_content_area()
+    content.set_spacing(8)
+    content.set_border_width(10)
+    content.add(Gtk.Label(
+        label="このタブは既に同期中です。\n現在の同期を停止して、新しい設定で開始しますか？\n\n%s" % image_name,
+        xalign=0,
+    ))
+    dialog.show_all()
+    replace = dialog.run() == Gtk.ResponseType.OK
+    dialog.destroy()
+    return replace
+
+
 def image_token(image):
     """未保存のtabのpreview画像をhash化 <- 変更の検出用"""
     if not image.is_dirty():
@@ -294,14 +314,14 @@ class LiveSyncPlugin(Gimp.PlugIn):
         if run_mode != Gimp.RunMode.INTERACTIVE or image is None:
             return procedure.new_return_values(Gimp.PDBStatusType.CALLING_ERROR, GLib.Error())
 
-        image_id = image.get_id()
-        existing = read_session(image_id)
-        if existing.get("running") and not is_stale(existing):
-            Gimp.message("[LiveSync] This tab is already being synced.")
-            return procedure.new_return_values(Gimp.PDBStatusType.EXECUTION_ERROR, GLib.Error())
-
         GimpUi.init("gimp-livesync")
+        image_id = image.get_id()
         image_name = image.get_name() or "untitled"
+        existing = read_session(image_id)
+        replace_existing = existing.get("running") and not is_stale(existing)
+        if replace_existing and not show_replace_dialog(image_name):
+            return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
+
         default_name = os.path.splitext(os.path.basename(image_name))[0] or "texture"
         settings = show_start_dialog(
             default_name, existing.get("target_folder", ""),
@@ -310,6 +330,9 @@ class LiveSyncPlugin(Gimp.PlugIn):
         if settings is None:
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
         target_folder, filename_base, debounce_ms = settings
+        if replace_existing:
+            # 確認後にだけ既存の監視を止める。
+            stop_session(image_id, existing.get("run_id"))
         run_id = uuid.uuid4().hex
         write_session(image_id, running=True, image_name=image_name,
                       target_folder=target_folder, filename_base=filename_base,
