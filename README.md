@@ -27,7 +27,7 @@ GitHub ReleasesからZIPをダウンロードし、任意の場所へ展開し�
 PowerShellから実行したい場合は、展開したフォルダをPowerShellで開いて次を実行します。
 
 ```powershell
-powershell -NoProfile -File .\install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 初回でも確認を表示し、既に導入済みの場合は上書き前にもう一度確認します。
