@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: get repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: make changelog and create zip
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          previous_tag="$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)"
+
+          {
+            echo "# ${tag}"
+            echo
+            echo "## Changes"
+            if [ -n "${previous_tag}" ]; then
+              git log --pretty=format:'- %s (%h)' "${previous_tag}..${tag}"
+            else
+              git log --pretty=format:'- %s (%h)' "${tag}"
+            fi
+            echo
+          } > RELEASE_NOTES.md
+
+          package="gimp-liveexporter-${tag}"
+          mkdir -p "dist/${package}"
+          cp -r src tools "dist/${package}/"
+          cp install.bat README.md LICENSE "dist/${package}/"
+          cp RELEASE_NOTES.md "dist/${package}/CHANGELOG.md"
+          (
+            cd dist
+            zip -r "${package}.zip" "${package}"
+          )
+          echo "asset=dist/${package}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" "${{ steps.package.outputs.asset }}" \
+            --title "GIMP Live Exporter ${GITHUB_REF_NAME}" \
+            --notes-file RELEASE_NOTES.md
