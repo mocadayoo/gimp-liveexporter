@@ -1,0 +1,64 @@
+# GIMP Live Exporter
+
+GIMP 3で編集した画像を監視し、Unityプロジェクト等へのPNGへ自動出力するプラグインです。
+VRChat用アバター・ワールドのテクスチャ調整を、Unityへの手動の操作なしで確認できます。
+
+## 特長
+
+- タブごとに独立してStart / Stopできる
+- 複数タブを同時に監視できる
+- 出力は複製画像から行い、元XCFの保存状態や編集内容を変更しない
+- 出力中の編集も検出し、次回の出力対象にする
+- 変更後の待機時間をタブごとに指定できる
+
+## 動作環境
+
+- GIMP 3.0以降
+- Unity（おすすめ: PNGの出力先としてUnityプロジェクトの `Assets` 配下を指定）
+
+## インストール
+
+GitHub ReleasesからZIPをダウンロードし、任意の場所へ展開してください。
+
+### Windows: 自動インストール
+
+展開したフォルダ内の `install.bat` をダブルクリックしてください。確認画面が開くので、内容を確認して `y` または `yes` を入力します。
+
+PowerShellから実行したい場合は、展開したフォルダをPowerShellで開いて次を実行します。
+
+```powershell
+powershell -NoProfile -File .\install.ps1
+```
+
+初回でも確認を表示し、既に導入済みの場合は上書き前にもう一度確認します。
+
+インストール先は以下です。
+
+```text
+%APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\live_update.py
+```
+
+### 手動インストール
+
+1. `%APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\` フォルダを作成します。
+2. `src\live_update.py` をそのフォルダへコピーします。
+3. GIMPを完全に終了してから再起動します。
+
+### GIMPで開始する
+
+1. 同期したい画像タブを選びます。
+2. `Filters > LiveSync > Start Sync...` を選びます。
+3. Unityプロジェクトの `Assets` 配下など、PNGの出力先を指定します。
+4. PNG名と出力待機時間を入力してStartします。
+
+GIMPの再起動後にメニューが見つからない場合は、GIMPのプラグインフォルダ設定と `src\live_update.py` の配置先を確認してください。
+
+## 使い方
+
+Start Sync後、対象タブの見た目の変化を監視します。最後の編集から指定時間だけ変化がなければPNGを出力します。
+
+`Stop Sync...` では、稼働中の一覧から停止するタブを1つ選べます。他のタブの同期は継続します。
+
+## License
+
+[MIT License](LICENSE)
