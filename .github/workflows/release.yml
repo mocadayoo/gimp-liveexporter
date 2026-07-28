@@ -40,7 +40,7 @@ jobs:
           package="gimp-liveexporter-${tag}"
           mkdir -p "dist/${package}"
           cp -r src tools "dist/${package}/"
-          cp install.bat README.md LICENSE "dist/${package}/"
+          cp install.bat install.sh README.md LICENSE "dist/${package}/"
           cp RELEASE_NOTES.md "dist/${package}/CHANGELOG.md"
           (
             cd dist
