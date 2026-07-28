@@ -290,6 +290,14 @@ def image_token(image):
     ).digest()
 
 
+def image_is_open(image_id):
+    """gimpの特定の画像タブが開いているか確認"""
+    try:
+        return Gimp.Image.id_is_valid(image_id)
+    except Exception:
+        return False
+
+
 class LiveSyncPlugin(Gimp.PlugIn):
     def do_set_i18n(self, name):
         return False
@@ -354,6 +362,10 @@ class LiveSyncPlugin(Gimp.PlugIn):
             if not session.get("running") or session.get("run_id") != run_id:
                 loop.quit()
                 return False
+            if not image_is_open(image_id):
+                Gimp.message("[LiveSync] The source tab was closed; sync stopped.")
+                loop.quit()
+                return False
             now = GLib.get_monotonic_time() / 1000.0
             if now - state["last_heartbeat"] >= HEARTBEAT_INTERVAL_MS:
                 write_session(image_id, heartbeat=time.time() * 1000.0)
@@ -373,6 +385,10 @@ class LiveSyncPlugin(Gimp.PlugIn):
                     and now - state["pending_since"] >= debounce_ms):
                 token_to_export = state["pending_token"]
                 if not export_texture(image, target_folder, filename_base):
+                    if not image_is_open(image_id):
+                        Gimp.message("[LiveSync] The source tab was closed; sync stopped.")
+                        loop.quit()
+                        return False
                     # 失敗時も変更を保持して次回に再試行する。
                     state["pending_since"] = now
                     return True
