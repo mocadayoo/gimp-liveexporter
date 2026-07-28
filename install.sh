@@ -15,7 +15,7 @@ fi
 
 case "$(uname -s)" in
     Darwin)
-        CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/Library/Application Support}"
+        CONFIG_HOME="$HOME/Library/Application Support"
         ;;
     Linux)
         CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -33,7 +33,8 @@ if [ -n "${GIMP3_DIRECTORY:-}" ]; then
         *) GIMP_DIRECTORY="$HOME/$GIMP3_DIRECTORY" ;;
     esac
 else
-    GIMP_VERSION=$(find "$CONFIG_HOME/GIMP" -mindepth 1 -maxdepth 1 -type d -name '3.[0-9]*' -exec basename {} \; 2>/dev/null \
+    GIMP_VERSION=$(find "$CONFIG_HOME/GIMP" -mindepth 1 -maxdepth 1 -type d -name '3.*' -exec basename {} \; 2>/dev/null \
+        | grep -E '^3\.[0-9]+(\.[0-9]+)*$' \
         | sort -t . -k1,1n -k2,2n -k3,3n \
         | tail -n 1)
 
