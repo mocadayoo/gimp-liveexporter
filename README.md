@@ -37,19 +37,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\install.ps1
 GIMPを一度起動して終了してから、展開したフォルダをターミナルで開き、次を実行してください。インストーラーは設定ディレクトリ内にある最新の `GIMP/3.*` フォルダを自動で選択します。初回と既存ファイルの上書き前に確認を表示します。
 
 ```sh
-sh install.sh
+bash install.sh
 ```
 
 確認なしで実行する場合は `--yes` を付けます。
 
 ```sh
-sh install.sh --yes
+bash install.sh --yes
 ```
 
 GIMPの設定フォルダが標準とは異なる場合は、環境変数 `GIMP3_DIRECTORY` にその設定フォルダを指定できます。
 
 ```sh
-GIMP3_DIRECTORY="/path/to/GIMP/3.2" sh install.sh
+GIMP3_DIRECTORY="/path/to/GIMP/3.2" bash install.sh
 ```
 
 ### 手動インストール
