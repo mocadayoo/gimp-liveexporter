@@ -20,7 +20,7 @@ import uuid
 """
 globalなデフォルトの値や、config類の初期化
 """
-DEBOUNCE_MS = 800
+DEBOUNCE_MS = 300
 POLL_INTERVAL_MS = 200
 HEARTBEAT_INTERVAL_MS = 1000
 STALE_THRESHOLD_MS = 5000
@@ -93,7 +93,7 @@ def list_active_sessions():
     return sessions
 
 
-def export_texture(image, target_folder, filename_base):
+def export_texture(image, target_folder, filename_base, compression_level):
     """エクスポートの処理本体"""
     out_path = os.path.join(target_folder, filename_base + ".png")
     duplicate = image.duplicate()
@@ -115,7 +115,7 @@ def export_texture(image, target_folder, filename_base):
                 config.set_property("image", duplicate)
                 config.set_property("file", output_file)
                 try:
-                    config.set_property("compression", PNG_COMPRESSION_LEVEL)
+                    config.set_property("compression", compression_level)
                 except Exception:
                     pass
                 result = procedure.run(config)
@@ -183,6 +183,7 @@ def show_start_dialog(default_filename, default_folder="", default_debounce=DEBO
     folder_entry = Gtk.Entry(text=default_folder, hexpand=True)
     name_entry = Gtk.Entry(text=default_filename, hexpand=True)
     debounce_entry = Gtk.Entry(text=str(default_debounce), hexpand=True)
+    compression_entry = Gtk.Entry(text=str(PNG_COMPRESSION_LEVEL), hexpand=True)
     error_label = Gtk.Label(xalign=0)
     browse = Gtk.Button(label="Browse...")
     browse.connect("clicked", lambda _: folder_entry.set_text(
@@ -194,7 +195,9 @@ def show_start_dialog(default_filename, default_folder="", default_debounce=DEBO
     grid.attach(name_entry, 1, 1, 2, 1)
     grid.attach(Gtk.Label(label="Export delay (ms):", halign=Gtk.Align.START), 0, 2, 1, 1)
     grid.attach(debounce_entry, 1, 2, 2, 1)
-    grid.attach(error_label, 0, 3, 3, 1)
+    grid.attach(Gtk.Label(label="PNG compression (0-9):", halign=Gtk.Align.START), 0, 3, 1, 1)
+    grid.attach(compression_entry, 1, 3, 2, 1)
+    grid.attach(error_label, 0, 4, 3, 1)
     dialog.show_all()
 
     result = None
@@ -202,6 +205,7 @@ def show_start_dialog(default_filename, default_folder="", default_debounce=DEBO
         folder = folder_entry.get_text().strip().strip('"')
         filename = sanitize_filename(name_entry.get_text())
         debounce_text = debounce_entry.get_text().strip()
+        compression_text = compression_entry.get_text().strip()
         if not folder or not os.path.isdir(folder):
             error_label.set_text("Choose an existing output folder.")
         elif not os.access(folder, os.W_OK):
@@ -213,8 +217,10 @@ def show_start_dialog(default_filename, default_folder="", default_debounce=DEBO
             error_label.set_text("Export delay must be a whole number in milliseconds.")
         elif not 50 <= int(debounce_text) <= 60000:
             error_label.set_text("Export delay must be between 50 and 60000 ms.")
+        elif not re.fullmatch(r"[0-9]", compression_text):
+            error_label.set_text("PNG compression must be a whole number from 0 to 9.")
         else:
-            result = (folder, filename, int(debounce_text))
+            result = (folder, filename, int(debounce_text), int(compression_text))
             break
     dialog.destroy()
     return result
@@ -341,14 +347,15 @@ class LiveSyncPlugin(Gimp.PlugIn):
         )
         if settings is None:
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
-        target_folder, filename_base, debounce_ms = settings
+        target_folder, filename_base, debounce_ms, compression_level = settings
         if replace_existing:
             # 確認後にだけ既存の監視を止める。
             stop_session(image_id, existing.get("run_id"))
         run_id = uuid.uuid4().hex
         write_session(image_id, running=True, image_name=image_name,
                       target_folder=target_folder, filename_base=filename_base,
-                      debounce_ms=debounce_ms, run_id=run_id,
+                      debounce_ms=debounce_ms, compression_level=compression_level,
+                      run_id=run_id,
                       heartbeat=time.time() * 1000.0)
         Gimp.message("[LiveSync] Started for tab: %s" % image_name)
 
@@ -384,7 +391,7 @@ class LiveSyncPlugin(Gimp.PlugIn):
             if (state["pending_token"] is not None and state["pending_since"] is not None
                     and now - state["pending_since"] >= debounce_ms):
                 token_to_export = state["pending_token"]
-                if not export_texture(image, target_folder, filename_base):
+                if not export_texture(image, target_folder, filename_base, compression_level):
                     if not image_is_open(image_id):
                         Gimp.message("[LiveSync] The source tab was closed; sync stopped.")
                         loop.quit()
