@@ -98,8 +98,12 @@ def export_texture(image, target_folder, filename_base):
     out_path = os.path.join(target_folder, filename_base + ".png")
     duplicate = image.duplicate()
     try:
-        if len(duplicate.get_layers()) > 1:
-            duplicate.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
+        visible_layer = Gimp.Layer.new_from_visible(
+            image, duplicate, "LiveSync preview"
+        )
+        for layer in duplicate.get_layers():
+            duplicate.remove_layer(layer)
+        duplicate.insert_layer(visible_layer, None, 0)
 
         output_file = Gio.File.new_for_path(out_path)
         exported = False
