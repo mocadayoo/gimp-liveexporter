@@ -27,7 +27,7 @@ GitHub ReleasesからZIPをダウンロードし、任意の場所へ展開し�
 PowerShellから実行したい場合は、展開したフォルダをPowerShellで開いて次を実行します。
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\install.ps1
 ```
 
 初回でも確認を表示し、既に導入済みの場合は上書き前にもう一度確認します。
@@ -37,6 +37,31 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```text
 %APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\gimp-liveexporter.py
 ```
+
+### macOS / Linux: 自動インストール
+
+展開したフォルダをターミナルで開き、次を実行してください。初回と既存ファイルの上書き前に確認を表示します。
+
+```sh
+./install.sh
+```
+
+`./install.sh` を実行できない環境では、次のように実行できます。
+
+```sh
+sh install.sh
+```
+
+確認なしで実行する場合は `--yes` を付けます。
+
+```sh
+./install.sh --yes
+```
+
+実行権限がないと表示された場合は、先に `chmod +x install.sh` を実行してください。インストール先は次のとおりです。
+
+- macOS: `~/Library/Application Support/GIMP/3.0/plug-ins/gimp-liveexporter/gimp-liveexporter.py`
+- Linux: `${XDG_CONFIG_HOME:-~/.config}/GIMP/3.0/plug-ins/gimp-liveexporter/gimp-liveexporter.py`
 
 ### 手動インストール
 
