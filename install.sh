@@ -15,11 +15,10 @@ fi
 
 case "$(uname -s)" in
     Darwin)
-        PLUGIN_DIRECTORY="${HOME}/Library/Application Support/GIMP/3.0/plug-ins/gimp-liveexporter"
+        CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/Library/Application Support}"
         ;;
     Linux)
         CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-        PLUGIN_DIRECTORY="$CONFIG_HOME/GIMP/3.0/plug-ins/gimp-liveexporter"
         ;;
     *)
         echo "未対応のOSです: $(uname -s)" >&2
@@ -28,6 +27,26 @@ case "$(uname -s)" in
         ;;
 esac
 
+if [ -n "${GIMP3_DIRECTORY:-}" ]; then
+    case "$GIMP3_DIRECTORY" in
+        /*) GIMP_DIRECTORY="$GIMP3_DIRECTORY" ;;
+        *) GIMP_DIRECTORY="$HOME/$GIMP3_DIRECTORY" ;;
+    esac
+else
+    GIMP_VERSION=$(find "$CONFIG_HOME/GIMP" -mindepth 1 -maxdepth 1 -type d -name '3.[0-9]*' -exec basename {} \; 2>/dev/null \
+        | sort -t . -k1,1n -k2,2n -k3,3n \
+        | tail -n 1)
+
+    if [ -z "$GIMP_VERSION" ]; then
+        echo "GIMPの設定フォルダが見つかりません。先にGIMPを一度起動してから、もう一度実行してください。" >&2
+        echo "別の場所を使う場合は、GIMP3_DIRECTORYに設定フォルダを指定してください。" >&2
+        exit 1
+    fi
+
+    GIMP_DIRECTORY="$CONFIG_HOME/GIMP/$GIMP_VERSION"
+fi
+
+PLUGIN_DIRECTORY="$GIMP_DIRECTORY/plug-ins/gimp-liveexporter"
 DESTINATION_FILE="$PLUGIN_DIRECTORY/gimp-liveexporter.py"
 
 confirm_install() {

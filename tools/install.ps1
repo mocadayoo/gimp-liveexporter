@@ -1,5 +1,22 @@
 ﻿$sourceFile = Join-Path $PSScriptRoot "..\src\gimp-liveexporter.py"
-$pluginDirectory = Join-Path $env:APPDATA "GIMP\3.0\plug-ins\gimp-liveexporter"
+$gimpDirectory = $env:GIMP3_DIRECTORY
+if ([string]::IsNullOrWhiteSpace($gimpDirectory)) {
+    $gimpRoot = Join-Path $env:APPDATA "GIMP"
+    $gimpVersionDirectory = Get-ChildItem -LiteralPath $gimpRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^3\.\d+(?:\.\d+)*$' } |
+        Sort-Object { [version]$_.Name } -Descending |
+        Select-Object -First 1
+
+    if ($null -eq $gimpVersionDirectory) {
+        throw "GIMPの設定フォルダが見つかりません。先にGIMPを一度起動してから、もう一度実行してください。別の場所を使う場合は、環境変数GIMP3_DIRECTORYに設定フォルダを指定してください。"
+    }
+
+    $gimpDirectory = $gimpVersionDirectory.FullName
+} elseif (-not [System.IO.Path]::IsPathRooted($gimpDirectory)) {
+    $gimpDirectory = Join-Path $HOME $gimpDirectory
+}
+
+$pluginDirectory = Join-Path $gimpDirectory "plug-ins\gimp-liveexporter"
 $destinationFile = Join-Path $pluginDirectory "gimp-liveexporter.py"
 
 function Confirm-Install([string]$Prompt) {

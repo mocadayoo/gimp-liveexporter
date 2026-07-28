@@ -22,7 +22,7 @@ GitHub ReleasesからZIPをダウンロードし、任意の場所へ展開し�
 
 ### Windows: 自動インストール
 
-展開したフォルダ内の `install.bat` をダブルクリックしてください。確認画面が開くので、内容を確認して `y` または `yes` を入力します。
+GIMPを一度起動して終了してから、展開したフォルダ内の `install.bat` をダブルクリックしてください。確認画面が開くので、内容を確認して `y` または `yes` を入力します。インストーラーは `%APPDATA%\GIMP` 内にある最新の `3.*` 設定フォルダを自動で選択します。
 
 PowerShellから実行したい場合は、展開したフォルダをPowerShellで開いて次を実行します。
 
@@ -32,21 +32,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\install.ps1
 
 初回でも確認を表示し、既に導入済みの場合は上書き前にもう一度確認します。
 
-インストール先は以下です。
-
-```text
-%APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\gimp-liveexporter.py
-```
-
 ### macOS / Linux: 自動インストール
 
-展開したフォルダをターミナルで開き、次を実行してください。初回と既存ファイルの上書き前に確認を表示します。
-
-```sh
-./install.sh
-```
-
-`./install.sh` を実行できない環境では、次のように実行できます。
+GIMPを一度起動して終了してから、展開したフォルダをターミナルで開き、次を実行してください。インストーラーは設定ディレクトリ内にある最新の `GIMP/3.*` フォルダを自動で選択します。初回と既存ファイルの上書き前に確認を表示します。
 
 ```sh
 sh install.sh
@@ -55,17 +43,18 @@ sh install.sh
 確認なしで実行する場合は `--yes` を付けます。
 
 ```sh
-./install.sh --yes
+sh install.sh --yes
 ```
 
-実行権限がないと表示された場合は、先に `chmod +x install.sh` を実行してください。インストール先は次のとおりです。
+GIMPの設定フォルダが標準とは異なる場合は、環境変数 `GIMP3_DIRECTORY` にその設定フォルダを指定できます。
 
-- macOS: `~/Library/Application Support/GIMP/3.0/plug-ins/gimp-liveexporter/gimp-liveexporter.py`
-- Linux: `${XDG_CONFIG_HOME:-~/.config}/GIMP/3.0/plug-ins/gimp-liveexporter/gimp-liveexporter.py`
+```sh
+GIMP3_DIRECTORY="/path/to/GIMP/3.2" sh install.sh
+```
 
 ### 手動インストール
 
-1. `%APPDATA%\GIMP\3.0\plug-ins\gimp-liveexporter\` フォルダを作成します。
+1. 使用中のGIMP設定フォルダ（例: `%APPDATA%\GIMP\3.2\`）内にある `plug-ins\gimp-liveexporter\` フォルダを作成します。
 2. `src\gimp-liveexporter.py` をそのフォルダへコピーします。
 3. GIMPを完全に終了してから再起動します。
 
