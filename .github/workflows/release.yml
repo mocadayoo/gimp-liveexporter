@@ -11,47 +11,123 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
       - name: get repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: determine release metadata
+        id: release_meta
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          is_prerelease() {
+            local tag="${1,,}"
+
+            [[ "$tag" =~ -(alpha|beta|rc|b)([.-]?[0-9]+)?$ ]] ||
+            [[ "$tag" =~ [0-9](alpha|beta|rc|b)[0-9]*$ ]]
+          }
+
+          if is_prerelease "$TAG_NAME"; then
+            prerelease="true"
+
+            previous_tag="$(
+              git describe \
+                --tags \
+                --abbrev=0 \
+                "${TAG_NAME}^" \
+                2>/dev/null || true
+            )"
+          else
+            prerelease="false"
+            previous_tag=""
+
+            while IFS= read -r candidate; do
+              if ! is_prerelease "$candidate"; then
+                previous_tag="$candidate"
+                break
+              fi
+            done < <(
+              git tag \
+                --merged "${TAG_NAME}^" \
+                --sort=-version:refname \
+                --list "v*"
+            )
+          fi
+
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
+
+          echo "Current tag: $TAG_NAME"
+          echo "Prerelease: $prerelease"
+          echo "Previous tag: ${previous_tag:-none}"
+
       - name: make changelog and create zip
         id: package
         shell: bash
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          PREVIOUS_TAG: ${{ steps.release_meta.outputs.previous_tag }}
         run: |
           set -euo pipefail
-          tag="${GITHUB_REF_NAME}"
-          previous_tag="$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)"
 
           {
-            echo "# ${tag}"
+            echo "# ${TAG_NAME}"
             echo
             echo "## Changes"
-            if [ -n "${previous_tag}" ]; then
-              git log --pretty=format:'- %s (%h)' "${previous_tag}..${tag}"
+
+            if [[ -n "$PREVIOUS_TAG" ]]; then
+              git log \
+                --pretty=format:'- %s (%h)' \
+                "${PREVIOUS_TAG}..${TAG_NAME}"
             else
-              git log --pretty=format:'- %s (%h)' "${tag}"
+              git log \
+                --pretty=format:'- %s (%h)' \
+                "${TAG_NAME}"
             fi
+
             echo
           } > RELEASE_NOTES.md
 
-          package="gimp-liveexporter-${tag}"
+          package="gimp-liveexporter-${TAG_NAME}"
+
           mkdir -p "dist/${package}"
           cp -r src tools "dist/${package}/"
           cp install.bat install.sh README.md LICENSE "dist/${package}/"
           cp RELEASE_NOTES.md "dist/${package}/CHANGELOG.md"
+
           (
             cd dist
             zip -r "${package}.zip" "${package}"
           )
+
           echo "asset=dist/${package}.zip" >> "$GITHUB_OUTPUT"
 
       - name: create Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          ASSET_PATH: ${{ steps.package.outputs.asset }}
+          IS_PRERELEASE: ${{ steps.release_meta.outputs.prerelease }}
+        shell: bash
         run: |
-          gh release create "${GITHUB_REF_NAME}" "${{ steps.package.outputs.asset }}" \
-            --title "GIMP Live Exporter ${GITHUB_REF_NAME}" \
+          set -euo pipefail
+
+          release_args=(
+            "$TAG_NAME"
+            "$ASSET_PATH"
+            --title "GIMP Live Exporter $TAG_NAME"
             --notes-file RELEASE_NOTES.md
+            --verify-tag
+          )
+
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+            release_args+=(--prerelease)
+          fi
+
+          gh release create "${release_args[@]}"
