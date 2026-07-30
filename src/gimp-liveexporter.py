@@ -21,6 +21,7 @@ import uuid
 globalなデフォルトの値や、config類の初期化
 """
 DEBOUNCE_MS = 300
+PAINT_DEBOUNCE_MS = 1200
 POLL_INTERVAL_MS = 200
 HEARTBEAT_INTERVAL_MS = 1000
 STALE_THRESHOLD_MS = 5000
@@ -171,7 +172,8 @@ def sanitize_filename(filename):
     return name
 
 
-def show_start_dialog(default_filename, default_folder="", default_debounce=DEBOUNCE_MS):
+def show_start_dialog(default_filename, default_folder="", default_debounce=DEBOUNCE_MS,
+                      default_paint_debounce=PAINT_DEBOUNCE_MS):
     dialog = Gtk.Dialog(title="LiveSync - Start Sync")
     dialog.add_buttons("_Cancel", Gtk.ResponseType.CANCEL, "_Start", Gtk.ResponseType.OK)
     content = dialog.get_content_area()
@@ -183,6 +185,7 @@ def show_start_dialog(default_filename, default_folder="", default_debounce=DEBO
     folder_entry = Gtk.Entry(text=default_folder, hexpand=True)
     name_entry = Gtk.Entry(text=default_filename, hexpand=True)
     debounce_entry = Gtk.Entry(text=str(default_debounce), hexpand=True)
+    paint_debounce_entry = Gtk.Entry(text=str(default_paint_debounce), hexpand=True)
     compression_entry = Gtk.Entry(text=str(PNG_COMPRESSION_LEVEL), hexpand=True)
     error_label = Gtk.Label(xalign=0)
     browse = Gtk.Button(label="Browse...")
@@ -195,9 +198,11 @@ def show_start_dialog(default_filename, default_folder="", default_debounce=DEBO
     grid.attach(name_entry, 1, 1, 2, 1)
     grid.attach(Gtk.Label(label="Export delay (ms):", halign=Gtk.Align.START), 0, 2, 1, 1)
     grid.attach(debounce_entry, 1, 2, 2, 1)
-    grid.attach(Gtk.Label(label="PNG compression (0-9):", halign=Gtk.Align.START), 0, 3, 1, 1)
-    grid.attach(compression_entry, 1, 3, 2, 1)
-    grid.attach(error_label, 0, 4, 3, 1)
+    grid.attach(Gtk.Label(label="Pen/paint delay (ms):", halign=Gtk.Align.START), 0, 3, 1, 1)
+    grid.attach(paint_debounce_entry, 1, 3, 2, 1)
+    grid.attach(Gtk.Label(label="PNG compression (0-9):", halign=Gtk.Align.START), 0, 4, 1, 1)
+    grid.attach(compression_entry, 1, 4, 2, 1)
+    grid.attach(error_label, 0, 5, 3, 1)
     dialog.show_all()
 
     result = None
@@ -205,22 +210,28 @@ def show_start_dialog(default_filename, default_folder="", default_debounce=DEBO
         folder = folder_entry.get_text().strip().strip('"')
         filename = sanitize_filename(name_entry.get_text())
         debounce_text = debounce_entry.get_text().strip()
+        paint_debounce_text = paint_debounce_entry.get_text().strip()
         compression_text = compression_entry.get_text().strip()
         if not folder or not os.path.isdir(folder):
             error_label.set_text("Choose an existing output folder.")
         elif not os.access(folder, os.W_OK):
             error_label.set_text("The output folder is not writable.")
         elif filename is None:
-            error_label.set_text("ファイル名に使えない文字が含まれています。")
+            error_label.set_text("Include cant use word")
         # 数字だけを受け付ける。
         elif not re.fullmatch(r"[0-9]{1,5}", debounce_text):
             error_label.set_text("Export delay must be a whole number in milliseconds.")
         elif not 50 <= int(debounce_text) <= 60000:
             error_label.set_text("Export delay must be between 50 and 60000 ms.")
+        elif not re.fullmatch(r"[0-9]{1,5}", paint_debounce_text):
+            error_label.set_text("Pen/paint delay must be a whole number in milliseconds.")
+        elif not 50 <= int(paint_debounce_text) <= 60000:
+            error_label.set_text("Pen/paint delay must be between 50 and 60000 ms.")
         elif not re.fullmatch(r"[0-9]", compression_text):
             error_label.set_text("PNG compression must be a whole number from 0 to 9.")
         else:
-            result = (folder, filename, int(debounce_text), int(compression_text))
+            result = (folder, filename, int(debounce_text),
+                      int(paint_debounce_text), int(compression_text))
             break
     dialog.destroy()
     return result
@@ -344,10 +355,11 @@ class LiveSyncPlugin(Gimp.PlugIn):
         settings = show_start_dialog(
             default_name, existing.get("target_folder", ""),
             existing.get("debounce_ms", DEBOUNCE_MS),
+            existing.get("paint_debounce_ms", PAINT_DEBOUNCE_MS),
         )
         if settings is None:
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
-        target_folder, filename_base, debounce_ms, compression_level = settings
+        target_folder, filename_base, debounce_ms, paint_debounce_ms, compression_level = settings
         if replace_existing:
             # 確認後にだけ既存の監視を止める。
             stop_session(image_id, existing.get("run_id"))
@@ -355,13 +367,15 @@ class LiveSyncPlugin(Gimp.PlugIn):
         write_session(image_id, running=True, image_name=image_name,
                       target_folder=target_folder, filename_base=filename_base,
                       debounce_ms=debounce_ms, compression_level=compression_level,
+                      paint_debounce_ms=paint_debounce_ms,
                       run_id=run_id,
                       heartbeat=time.time() * 1000.0)
         Gimp.message("[LiveSync] Started for tab: %s" % image_name)
 
         state = {"observed_token": None, "pending_token": None,
                  "pending_since": None, "exported_token": None,
-                 "last_heartbeat": 0}
+                 "last_heartbeat": 0, "last_change_at": None,
+                 "pending_is_paint": False}
         loop = GLib.MainLoop()
 
         def poll():
@@ -385,11 +399,21 @@ class LiveSyncPlugin(Gimp.PlugIn):
                 return False
             # 変更が続く間は待機時間をリセットする。
             if token is not None and token != state["observed_token"]:
+                is_continuous_paint = (
+                    state["last_change_at"] is not None
+                    and now - state["last_change_at"] <= POLL_INTERVAL_MS * 2
+                )
                 state["observed_token"] = token
                 state["pending_token"] = token
                 state["pending_since"] = now
+                state["pending_is_paint"] = (
+                    state["pending_is_paint"] or is_continuous_paint
+                )
+                state["last_change_at"] = now
             if (state["pending_token"] is not None and state["pending_since"] is not None
-                    and now - state["pending_since"] >= debounce_ms):
+                    and now - state["pending_since"] >= (
+                        paint_debounce_ms if state["pending_is_paint"] else debounce_ms
+                    )):
                 token_to_export = state["pending_token"]
                 if not export_texture(image, target_folder, filename_base, compression_level):
                     if not image_is_open(image_id):
@@ -410,9 +434,13 @@ class LiveSyncPlugin(Gimp.PlugIn):
                 if token_after_export != token_to_export:
                     state["pending_token"] = token_after_export
                     state["pending_since"] = now
+                    state["pending_is_paint"] = True
+                    state["last_change_at"] = now
                 else:
                     state["pending_token"] = None
                     state["pending_since"] = None
+                    state["pending_is_paint"] = False
+                    state["last_change_at"] = None
             return True
 
         GLib.timeout_add(POLL_INTERVAL_MS, poll)
