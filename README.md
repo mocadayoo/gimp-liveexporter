@@ -1,20 +1,24 @@
-# GIMP Live Exporter
+# GIMP Live Exporter - [English](docs/lang/en/README.md)
 
-GIMP 3で編集した画像を監視し、Unityプロジェクト等へのPNGへ自動出力するプラグインです。
-VRChat用アバター・ワールドのテクスチャ調整を、Unityへの手動の操作なしで確認できます。
+GIMP 3で画像の編集を監視し、Unityプロジェクト等へPNGで自動出力するプラグインです。
+
+## デモ
+![GIMP Live Exporter Demo](https://raw.githubusercontent.com/mocadayoo/gimp-liveexporter/refs/heads/master/docs/assets/demo.gif)
+
+## 何がいいの?
+VRChat用アバター・ワールドのテクスチャ等の調整を、<u>手動操作なしで**すぐに**確認</u>できます。
 
 ## 特長
 
-- タブごとに独立してStart / Stopできる
-- 複数タブを同時に監視できる
+- 複数タブを同時に監視でき、タブごとに独立してStart / Stopできる
 - 出力は複製画像から行い、元XCFの保存状態や編集内容を変更しない
-- 出力中の編集も検出し、次回の出力対象にする
-- 変更後の待機時間をタブごとに指定できる
+- エフェクトなどを確定させなくても、反映が行われる
+- 変更後の待機時間をタブごとに指定でき、また圧縮率も設定可能
 
 ## 動作環境
 
 - GIMP 3.0以降
-- Unity（おすすめ: PNGの出力先としてUnityプロジェクトの `Assets` 配下を指定）
+- installerは現在 `windows` / `macos` のみ対応
 
 ## インストール
 
@@ -46,7 +50,7 @@ bash install.sh
 bash install.sh --yes
 ```
 
-GIMPの設定フォルダが標準とは異なる場合は、環境変数 `GIMP3_DIRECTORY` にその設定フォルダを指定できます。
+GIMPの設定フォルダが標準とは異なる場合は、環境変数 `GIMP3_DIRECTORY` にその設定フォルダを指定することで同じく利用できます。
 
 ```sh
 GIMP3_DIRECTORY="/path/to/GIMP/3.2" bash install.sh
@@ -54,8 +58,8 @@ GIMP3_DIRECTORY="/path/to/GIMP/3.2" bash install.sh
 
 ### 手動インストール
 
-1. 使用中のGIMP設定フォルダ（例: `%APPDATA%\GIMP\3.2\`）内にある `plug-ins\gimp-liveexporter\` フォルダを作成します。
-2. `src\gimp-liveexporter.py` をそのフォルダへコピーします。
+1. 使用中のGIMP設定フォルダ（例: `%APPDATA%\GIMP\3.2\`）内にある `plug-ins`フォルダの中に、`gimp-liveexporter` フォルダを作成します。
+2. `src` の中にある `gimp-liveexporter.py` をそのフォルダへコピーします。
 3. GIMPを完全に終了してから再起動します。
 
 ### GIMPで開始する
@@ -65,7 +69,7 @@ GIMP3_DIRECTORY="/path/to/GIMP/3.2" bash install.sh
 3. Unityプロジェクトの `Assets` 配下など、PNGの出力先を指定します。
 4. PNG名と出力待機時間を入力してStartします。
 
-GIMPの再起動後にメニューが見つからない場合は、GIMPのプラグインフォルダ設定と `src\gimp-liveexporter.py` の配置先を確認してください。
+GIMPの再起動後にメニューが見つからない場合は、GIMPのプラグインフォルダ設定と `gimp-liveexporter.py` の配置先を確認してください。
 
 ## 使い方
 
@@ -76,7 +80,7 @@ Start Sync後、対象タブの見た目の変化を監視します。最後の�
 ## 免責事項
 
 - 本ツールは無保証で提供します。動作、互換性、継続利用、特定の目的への適合を保証しません。
-- 利用者自身の責任で使用してください。使用または使用不能により生じたデータ消失、Unityプロジェクトの破損、テクスチャ設定の変更、作業中断その他の損害について、作者は適用法令で許される最大限の範囲で責任を負いません。
+- 利用者自身の責任で使用してください。使用または使用不能により生じたデータ消失、Unityプロジェクト等の破損、テクスチャ設定の変更、作業中断その他の損害について、作者は適用法令で許される最大限の範囲で責任を負いません。
 - 本ツールは指定したPNGを上書きする場合がございます。ファイル指定には気を付けてください。
 - Unity、GIMPおよび各アセットの利用規約・ライセンスは、利用者自身で確認してください。
 
