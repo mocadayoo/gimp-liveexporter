@@ -98,6 +98,7 @@ jobs:
 
           mkdir -p "dist/${package}"
           cp -r src tools "dist/${package}/"
+          cp -r docs/lang "dist/${package}/docs/"
           cp install.bat install.sh README.md LICENSE "dist/${package}/"
           cp RELEASE_NOTES.md "dist/${package}/CHANGELOG.md"
 
